@@ -140,6 +140,45 @@ class ConstantParameter(TensorParameter):
         return {"shape": self.shape, "value": self.value}
 
 
+class GateFunctionParameter(ParameterInput):
+    def __init__(
+        self,
+        *shape: int,
+        dtype: DataType = DataType.REAL,
+    ):
+        """Initializes a symbolic tensor parameter.
+
+        Args:
+            *shape: The shape of the tensor parameter.
+            dtype: The data type.
+
+        Raises:
+            ValueError: If the shape is empty or contains dimensions that are not positive.
+        """
+        super().__init__()
+        if len(shape) < 1 or any(d <= 0 for d in shape):
+            raise ValueError(
+                f"The shape {shape} must be non-empty and have positive dimension sizes"
+            )
+        self._shape = shape
+        self.dtype = dtype
+
+    @property
+    def gate_function(self):
+        return self._gate_function
+
+    @property
+    def shape(self) -> tuple[int, ...]:
+        return self._shape
+
+    @property
+    def config(self) -> dict[str, Any]:
+        return {
+            "shape": self.shape,
+            "dtype": self.dtype,
+        }
+
+
 class ReferenceParameter(ParameterInput):
     """A symbolic reference parameter representing a symbolic link to a tensor parameter."""
 

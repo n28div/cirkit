@@ -1,4 +1,5 @@
 from collections.abc import Callable, Iterator, Mapping, Sequence
+from collections import defaultdict
 
 import torch
 from torch import Tensor
@@ -14,6 +15,7 @@ from cirkit.backend.torch.graph.modules import (
     TorchDiAcyclicGraph,
 )
 from cirkit.backend.torch.layers import TorchInputLayer, TorchLayer
+from cirkit.backend.torch.parameters.nodes import TorchGateFunctionParameter
 from cirkit.symbolic.circuit import StructuralProperties
 from cirkit.utils.scope import Scope
 
@@ -261,6 +263,36 @@ class TorchCircuit(AbstractTorchCircuit):
         # IGNORE: Idiom for nn.Module.__call__.
         return super().__call__(x)  # type: ignore[no-any-return,misc]
 
+    @property
+    def gated_parameters(self):
+        gps = defaultdict(dict)
+        for l in self.layers:
+            for parameter_name, parameter in l.params.items():
+                gps[l][parameter_name] = [
+                    n
+                    for n in parameter.nodes
+                    if isinstance(n, TorchGateFunctionParameter)
+                ]
+        
+        return gps
+        
+
+    def parametrize_gate_functions(self, parametrization_map):
+        for layer, parameters in self.gated_parameters.items():
+            if layer not in parametrization_map:
+                raise ValueError(f"Missing parametrization of layer {layer}.")
+
+            for parameter_name, parameters in parameters.items():
+                if parameter_name not in parametrization_map[layer]:
+                    raise ValueError(f"Missing parametrization of parameter {parameter_name} in layer {layer}.")
+                
+                gates = parametrization_map[layer][parameter_name]
+                for parameter in parameters:
+                    if parameter not in gates:
+                        raise ValueError(f"Missing parametrization of element {parameter} in parameter {parameter_name} of layer {layer}.")
+                
+                    parameter.parametrize(gates[parameter])
+        
     def forward(self, x: Tensor) -> Tensor:
         """Evaluate the circuit layers in forward mode, i.e., by evaluating each layer by
         following the topological ordering.

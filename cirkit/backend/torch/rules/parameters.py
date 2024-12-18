@@ -30,6 +30,7 @@ from cirkit.backend.torch.parameters.nodes import (
     TorchSquareParameter,
     TorchSumParameter,
     TorchTensorParameter,
+    TorchGateFunctionParameter,
 )
 from cirkit.symbolic.dtypes import DataType
 from cirkit.symbolic.parameters import (
@@ -60,6 +61,7 @@ from cirkit.symbolic.parameters import (
     SquareParameter,
     SumParameter,
     TensorParameter,
+    GateFunctionParameter,
 )
 
 if TYPE_CHECKING:
@@ -88,6 +90,11 @@ def compile_tensor_parameter(compiler: "TorchCompiler", p: TensorParameter) -> T
     compiler.state.register_compiled_parameter(p, compiled_p)
     return compiled_p
 
+def compile_gate_function_parameter(compiler: "TorchCompiler", p: GateFunctionParameter) -> TorchTensorParameter:
+    dtype = _retrieve_dtype(p.dtype)
+    compiled_p = TorchGateFunctionParameter(*p.shape, dtype=dtype)
+    compiler.state.register_compiled_parameter(p, compiled_p)
+    return compiled_p
 
 def compile_constant_parameter(
     compiler: "TorchCompiler", p: ConstantParameter
@@ -261,6 +268,7 @@ def compile_polynomial_differential(
 
 DEFAULT_PARAMETER_COMPILATION_RULES: dict[ParameterCompilationSign, ParameterCompilationFunc] = {  # type: ignore[misc]
     TensorParameter: compile_tensor_parameter,
+    GateFunctionParameter: compile_gate_function_parameter,
     ConstantParameter: compile_constant_parameter,
     ReferenceParameter: compile_reference_parameter,
     IndexParameter: compile_index_parameter,

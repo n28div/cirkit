@@ -226,6 +226,53 @@ class TorchTensorParameter(TorchParameterInput):
             )
         return self._ptensor
 
+class TorchGateFunctionParameter(TorchParameterInput):
+    def __init__(
+        self,
+        *shape: int,
+        dtype: torch.dtype | None = None,
+    ):
+        if dtype is None:
+            dtype = torch.get_default_dtype()
+        super().__init__()
+        self._shape = shape
+        self._dtype = dtype
+        self._ptensor = None
+
+    @property
+    def shape(self) -> tuple[int, ...]:
+        return self._shape
+
+    @property
+    def dtype(self) -> torch.dtype:
+        """Retrieve the data type of the parameter.
+
+        Returns:
+            torch.dtype: The parameter data type.
+        """
+        return self._dtype
+
+    @property
+    def device(self) -> torch.device:
+        if self._ptensor is None:
+            raise ValueError("The gate function has not been parametrized.")
+        return self._ptensor.device
+
+    @property
+    def config(self) -> dict[str, Any]:
+        return {
+            "shape": self._shape,
+            "dtype": self._dtype,
+        }
+
+    def parametrize(self, x):
+        self._ptensor = x
+
+    def forward(self) -> Tensor:
+        if self._ptensor is None:
+            raise ValueError("The gate function has not been parametrized.")
+        # TODO: handle fold dimension
+        return self._ptensor.unsqueeze(0)
 
 class TorchPointerParameter(TorchParameterInput):
     def __init__(
