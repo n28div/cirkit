@@ -1,9 +1,9 @@
 import itertools
 from collections.abc import Sequence
-from typing import Any
+from typing import Any, Callable, Mapping, cast
 
 import torch
-from torch import Tensor, autograd
+from torch import Tensor, autograd, nn
 
 
 class SafeLog(autograd.Function):
@@ -100,3 +100,32 @@ def unflatten_dims(x: Tensor, /, *, dims: Sequence[int], shape: Sequence[int]) -
     return torch.unflatten(x, dim=start_dim, sizes=shape).movedim(
         tuple(range(start_dim, end_dim)), tuple(dims)
     )
+
+
+class CachedGateFunctionEval(object):
+    def __init__(
+        self, function_id: str, gate_function: Callable[Mapping[str, Tensor], Mapping[str, Tensor]]
+    ):
+        super().__init__()
+        self._function_id = function_id
+        self._gate_function = gate_function
+        self._cached_output: dict[str, Tensor] | None = None
+
+    @property
+    def function_id(self) -> str:
+        return self._function_id
+
+    @property
+    def gate_function(self) -> Callable[Mapping[str, Tensor], Mapping[str, Tensor]]:
+        return self._gate_function
+
+    def reset_cache(self):
+        self._cached_output = None
+
+    def memoize(self, *args, **kwargs):
+        self._cached_output = cast(Mapping[str, Tensor], self.gate_function(*args, **kwargs))
+
+    def __call__(self) -> Mapping[str, Tensor]:
+        if self._cached_output is None:
+            raise ValueError("No output mapping is stored. Call memoize() method first")
+        return self._cached_output
