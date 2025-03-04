@@ -268,6 +268,46 @@ class TorchEmbeddingLayer(TorchInputFunctionLayer):
         return x  # (F, B, K)
 
 
+class TorchParametricLayer(TorchInputFunctionLayer):
+    """Parameter function input layer."""
+
+    def __init__(
+        self,
+        scope_idx: Tensor,
+        num_output_units: int,
+        *,
+        parameter: TorchParameter,
+        semiring: Semiring | None = None,
+    ) -> None:
+        r"""Initialize a Binomial layer.
+
+        Args:
+            scope_idx: A tensor of shape $(F, D)$, where $F$ is the number of folds, and
+                $D$ is the number of variables on which the input layers in each fold are defined on.
+                Alternatively, a tensor of shape $(D,)$ can be specified, which will be interpreted
+                as a tensor of shape $(1, D)$, i.e., with $F = 1$.
+            num_output_units: The number of output units.
+            parameter: The gate function used to compute the input of this layer.
+        """
+        super().__init__(scope_idx, num_output_units, semiring=semiring)
+        self.parameter = parameter
+
+    @property
+    def config(self) -> Mapping[str, Any]:
+        return {
+            "num_output_units": self.num_output_units,
+        }
+
+    @property
+    def params(self) -> Mapping[str, TorchParameter]:
+        return {"parameter": self.parameter}
+
+    def forward(self, x: Tensor) -> Tensor:
+        # ignore x since this input only depends on the internal parameter
+        # add fold dimension
+        return self.parameter().unsqueeze(0)  # (F, K, 1)
+
+
 class TorchExpFamilyLayer(TorchInputFunctionLayer, ABC):
     """The abstract base class for exponential family distribution layers.
     An input layer that is an exponential family distribution must define two methods.

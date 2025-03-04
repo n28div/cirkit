@@ -12,6 +12,7 @@ from cirkit.backend.torch.layers.input import (
     TorchEvidenceLayer,
     TorchGaussianLayer,
     TorchInputLayer,
+    TorchParametricLayer,
     TorchPolynomialLayer,
 )
 from cirkit.symbolic.layers import (
@@ -23,6 +24,7 @@ from cirkit.symbolic.layers import (
     GaussianLayer,
     HadamardLayer,
     KroneckerLayer,
+    ParametricLayer,
     PolynomialLayer,
     SumLayer,
 )
@@ -38,6 +40,17 @@ def compile_embedding_layer(compiler: "TorchCompiler", sl: EmbeddingLayer) -> To
         sl.num_output_units,
         num_states=sl.num_states,
         weight=weight,
+        semiring=compiler.semiring,
+    )
+
+
+def compile_parametric_layer(
+    compiler: "TorchCompiler", sl: ParametricLayer
+) -> TorchParametricLayer:
+    return TorchParametricLayer(
+        torch.tensor(tuple(sl.scope)),
+        sl.num_output_units,
+        parameter=compiler.compile_parameter(sl.parameter),
         semiring=compiler.semiring,
     )
 
@@ -158,4 +171,5 @@ DEFAULT_LAYER_COMPILATION_RULES: dict[LayerCompilationSign, LayerCompilationFunc
     SumLayer: compile_sum_layer,
     ConstantValueLayer: compile_constant_value_layer,
     EvidenceLayer: compile_evidence_layer,
+    ParametricLayer: compile_parametric_layer,
 }

@@ -5,6 +5,7 @@ from typing import Any, Callable, cast
 
 from cirkit.symbolic.initializers import NormalInitializer
 from cirkit.symbolic.parameters import (
+    GateFunctionParameter,
     Parameter,
     ParameterFactory,
     ScaledSigmoidParameter,
@@ -306,6 +307,34 @@ class EmbeddingLayer(InputLayer):
         return {"weight": self.weight}
 
 
+class ParametricLayer(InputLayer):
+    r"""A symbolic layer representing a parameter input layer, where the input is obtained externally."""
+
+    def __init__(
+        self,
+        scope: Scope,
+        num_output_units: int,
+        *,
+        parameter: Parameter,
+        label: LayerLabel | None = None,
+    ):
+        r""" """
+        super().__init__(scope, num_output_units, label=label)
+        self.parameter = parameter
+
+    @property
+    def config(self) -> Mapping[str, Any]:
+        return {
+            "scope": self.scope,
+            "num_output_units": self.num_output_units,
+            "label": self.label,
+        }
+
+    @property
+    def params(self) -> Mapping[str, Parameter]:
+        return {"parameter": self.parameter}
+
+
 class CategoricalLayer(InputLayer):
     """A symbolic Categorical layer, which is parameterized either by
     probabilities (yielding a normalized Categorical distribution) or by
@@ -435,7 +464,7 @@ class BinomialLayer(InputLayer):
             )
         if total_count < 0:
             raise ValueError("The number of trials should be non-negative")
-        super().__init__(scope, num_output_units)
+        super().__init__(scope, num_output_units, label=label)
         self.total_count = total_count
         if logits is None and probs is None:
             if logits_factory is not None:
