@@ -305,7 +305,7 @@ class TorchParametricLayer(TorchInputFunctionLayer):
     def forward(self, x: Tensor) -> Tensor:
         # ignore x since this input only depends on the internal parameter
         # add fold dimension
-        return self.parameter().unsqueeze(0)  # (F, K, 1)
+        return self.parameter()  # (F, K, 1)
 
 
 class TorchExpFamilyLayer(TorchInputFunctionLayer, ABC):
